@@ -27,6 +27,7 @@ from torch import nn
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
     GenerationConfig,
     MistralForSequenceClassification,
     Qwen2ForSequenceClassification,
@@ -37,9 +38,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from verl.models.registry import ModelRegistry
 from verl.utils.import_utils import is_trl_available
-
-from tampering.rm.inform import InfoRM
-
+from verl.utils.inform import InfoRM
 
 class LambdaLayer(nn.Module):
     def __init__(self, fn):
@@ -436,6 +435,15 @@ def _load_hf_model(config, model_config, is_value_model, local_cache_path):
                 :32000
             ]  # workaround, 32001 -> 32000
             is_value_model = True
+        elif "inform" in config.model.path:
+            model = InfoRM.from_pretrained(
+                local_model_path,
+                torch_dtype="auto",
+                # device_map="auto", # disable auto device_map, the HF weight is only loaded to CPU in src_rank
+                # low_cpu_mem_usage=True
+            )
+            state_dict = model.state_dict()
+            is_value_model = True
         elif "qwen2" in config.model.path and "rm" in config.model.path:
             model = Qwen2ForSequenceClassification.from_pretrained(
                 local_model_path,
@@ -445,15 +453,6 @@ def _load_hf_model(config, model_config, is_value_model, local_cache_path):
             )
             state_dict = model.state_dict()
             state_dict["lm_head.weight"] = state_dict["score.weight"]
-            is_value_model = True
-        elif "inform" in config.model.path:
-            model = InfoRM.from_pretrained(
-                local_model_path,
-                torch_dtype="auto",
-                # device_map="auto", # disable auto device_map, the HF weight is only loaded to CPU in src_rank
-                # low_cpu_mem_usage=True
-            )
-            state_dict = model.state_dict()
             is_value_model = True
         else:
             model = AutoModelForCausalLM.from_pretrained(
