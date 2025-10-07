@@ -301,9 +301,26 @@ def _fused_GPTModel_forward(
 
     if self.config.sequence_parallel:
         hidden_states = gather_from_sequence_parallel_region(hidden_states)
+
+    
+    if self.share_embeddings_and_output_weights:
+        output_weight = self.shared_embedding_or_output_weight()
+    elif hasattr(self, "output_layer") and self.output_layer is not None:
+        output_weight = self.output_layer.weight
+    elif hasattr(self, "lm_head") and self.lm_head is not None and hasattr(self.lm_head, "weight"):
+        output_weight = self.lm_head.weight
+    else:
+        raise AttributeError(
+            "No valid output projection layer found (expected `output_layer`, `lm_head`, or tied embeddings)."
+        )
+        
+    assert hidden_states is not None, "hidden_states is None"
+    assert output_weight is not None, "weight is None"
+    assert labels is not None, "labels is None"
+  
     logprobs, entropy = linear_cross_entropy(
         hidden_states,
-        self.output_layer.weight,
+        output_weight,
         labels,
         temperature,
         "none",

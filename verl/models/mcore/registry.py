@@ -63,6 +63,7 @@ from .weight_converter import (
 class SupportedModel(Enum):
     LLAMA = "LlamaForCausalLM"  # tested
     QWEN2 = "Qwen2ForCausalLM"  # tested
+    QWEN2_3B = "Qwen2ForCausalLMWithLMHead"  # tested
     QWEN2RM = "Qwen2ForSequenceClassification"
     INFORM = "InfoRM"
     QWEN2_MOE = "Qwen2MoeForCausalLM"  # pending
@@ -79,6 +80,7 @@ class SupportedModel(Enum):
 MODEL_CONFIG_CONVERTER_REGISTRY: dict[SupportedModel, Callable[[PretrainedConfig, torch.dtype], TransformerConfig]] = {
     SupportedModel.LLAMA: hf_to_mcore_config_dense,
     SupportedModel.QWEN2: hf_to_mcore_config_dense,
+    SupportedModel.QWEN2_3B: hf_to_mcore_config_dense,
     SupportedModel.QWEN2RM: hf_to_mcore_config_dense,
     SupportedModel.INFORM: hf_to_mcore_config_dense,
     SupportedModel.QWEN2_MOE: hf_to_mcore_config_qwen2moe,
@@ -95,6 +97,7 @@ MODEL_CONFIG_CONVERTER_REGISTRY: dict[SupportedModel, Callable[[PretrainedConfig
 MODEL_INITIALIZER_REGISTRY: dict[SupportedModel, type[BaseModelInitializer]] = {
     SupportedModel.LLAMA: DenseModel,
     SupportedModel.QWEN2: DenseModel,
+    SupportedModel.QWEN2_3B: DenseModel,
     SupportedModel.QWEN2RM: DenseModel,
     SupportedModel.INFORM: DenseModel,
     SupportedModel.QWEN2_MOE: Qwen2MoEModel,
@@ -111,6 +114,7 @@ MODEL_INITIALIZER_REGISTRY: dict[SupportedModel, type[BaseModelInitializer]] = {
 MODEL_FORWARD_REGISTRY: dict[SupportedModel, Callable] = {
     SupportedModel.LLAMA: gptmodel_forward,
     SupportedModel.QWEN2: gptmodel_forward,
+    SupportedModel.QWEN2_3B: gptmodel_forward,
     SupportedModel.QWEN2RM: gptmodel_forward,
     SupportedModel.INFORM: gptmodel_forward,
     SupportedModel.QWEN2_MOE: gptmodel_forward,
@@ -129,6 +133,7 @@ MODEL_FORWARD_REGISTRY: dict[SupportedModel, Callable] = {
 MODEL_FORWARD_FUSED_REGISTRY: dict[SupportedModel, Callable] = {
     SupportedModel.LLAMA: fused_forward_gptmodel,
     SupportedModel.QWEN2: fused_forward_gptmodel,
+    SupportedModel.QWEN2_3B: fused_forward_gptmodel,
     SupportedModel.QWEN2RM: fused_forward_gptmodel,
     SupportedModel.INFORM: fused_forward_gptmodel,
     SupportedModel.QWEN2_MOE: fused_forward_gptmodel,
@@ -147,6 +152,7 @@ MODEL_FORWARD_FUSED_REGISTRY: dict[SupportedModel, Callable] = {
 MODEL_WEIGHT_CONVERTER_REGISTRY: dict[SupportedModel, type] = {
     SupportedModel.LLAMA: McoreToHFWeightConverterDense,
     SupportedModel.QWEN2: McoreToHFWeightConverterDense,
+    SupportedModel.QWEN2_3B: McoreToHFWeightConverterDense,
     SupportedModel.QWEN2RM: McoreToHFWeightConverterDense,
     SupportedModel.INFORM: McoreToHFWeightConverterDense,
     SupportedModel.QWEN2_MOE: McoreToHFWeightConverterQwen2Moe,

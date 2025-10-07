@@ -39,6 +39,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 from verl.models.registry import ModelRegistry
 from verl.utils.import_utils import is_trl_available
 from verl.utils.inform import InfoRM
+from verl.utils.causallmwithhrad import Qwen2ForCausalLMWithLMHead
 
 class LambdaLayer(nn.Module):
     def __init__(self, fn):
@@ -435,16 +436,33 @@ def _load_hf_model(config, model_config, is_value_model, local_cache_path):
                 :32000
             ]  # workaround, 32001 -> 32000
             is_value_model = True
-        elif "inform" in config.model.path:
-            model = InfoRM.from_pretrained(
+        elif "qwen2" in config.model.path and "-3b" in config.model.path and "-sft" in config.model.path:
+            model = AutoModelForCausalLM.from_pretrained(
                 local_model_path,
                 torch_dtype="auto",
                 # device_map="auto", # disable auto device_map, the HF weight is only loaded to CPU in src_rank
                 # low_cpu_mem_usage=True
             )
+            model.lm_head = torch.nn.Linear(
+                model.config.hidden_size,
+                model.config.vocab_size,
+                bias=False
+            )
+            embed_weight = model.get_input_embeddings().weight
+            model.lm_head.weight = embed_weight 
+            setattr(model, "output_layer", model.lm_head)
+            state_dict = model.state_dict()
+        elif "inform" in config.model.path:
+            model = InfoRM.from_pretrained(
+                local_model_path,
+                torch_dtype="auto",
+                trust_remote_code=True,
+                # device_map="auto", # disable auto device_map, the HF weight is only loaded to CPU in src_rank
+                # low_cpu_mem_usage=True
+            )
             state_dict = model.state_dict()
             is_value_model = True
-        elif "qwen2" in config.model.path and "rm" in config.model.path:
+        elif "qwen2" in config.model.path and "-rm" in config.model.path:
             model = Qwen2ForSequenceClassification.from_pretrained(
                 local_model_path,
                 torch_dtype="auto",
