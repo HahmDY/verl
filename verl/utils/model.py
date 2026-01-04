@@ -28,6 +28,7 @@ from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoModelForSequenceClassification,
+    LlamaForSequenceClassification,
     GenerationConfig,
     MistralForSequenceClassification,
     Qwen2ForSequenceClassification,
@@ -452,6 +453,15 @@ def _load_hf_model(config, model_config, is_value_model, local_cache_path):
             model.lm_head.weight = embed_weight 
             setattr(model, "output_layer", model.lm_head)
             state_dict = model.state_dict()
+        elif "llama" in config.model.path and "-rm" in config.model.path:
+            model = LlamaForSequenceClassification.from_pretrained(
+                local_model_path,
+                torch_dtype="auto",
+                # device_map="auto", # disable auto device_map, the HF weight is only loaded to CPU in src_rank
+                # low_cpu_mem_usage=True
+            )
+            state_dict = model.state_dict()
+            is_value_model = True
         elif "inform" in config.model.path:
             model = InfoRM.from_pretrained(
                 local_model_path,
